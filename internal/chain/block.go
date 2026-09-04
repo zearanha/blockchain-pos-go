@@ -2,7 +2,6 @@ package chain
 
 import (
 	"crypto/sha256"
-	"crypto/sha2566"
 	"encoding/hex"
 	"encoding/json"
 	"time"
