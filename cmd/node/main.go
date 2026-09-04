@@ -2,39 +2,51 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/zearanha/blockchain-pos-go/internal/chain"
+	"github.com/zearanha/blockchain-pos-go/internal/wallet"
 )
 
 func main() {
+	aliceWallet, err := wallet.NewWallet()
+	if err != nil {
+		log.Fatal(err)
+	}
+	bobWallet, err := wallet.NewWallet()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Endereço da Alice:", aliceWallet.Address())
+	fmt.Println("Endereço do Bob:  ", bobWallet.Address())
+
+	tx := chain.Transaction{
+		From:   aliceWallet.Address(),
+		To:     bobWallet.Address(),
+		Amount: 10,
+	}
+
+	if err := chain.SignTransaction(&tx, aliceWallet); err != nil {
+		log.Fatal("erro ao assinar:", err)
+	}
+
+	valid, err := chain.VerifyTransaction(&tx)
+	fmt.Printf("\nAssinatura válida? %v (err: %v)\n", valid, err)
+
 	bc := chain.NewBlockchain()
-	fmt.Printf("Chain iniciada com bloco gênese (hash: %s)\n\n", bc.LastBlock().Hash)
-
-	bc.AddBlock([]chain.Transaction{
-		{From: "alice", To: "bob", Amount: 10},
-	}, "validador-1")
-
-	bc.AddBlock([]chain.Transaction{
-		{From: "bob", To: "carol", Amount: 5},
-	}, "validador-2")
-
-	for _, b := range bc.Blocks {
-		fmt.Printf("Bloco %d | Hash: %s | PrevHash: %s\n", b.Index, b.Hash, b.PrevHash)
+	_, err = bc.AddBlock([]chain.Transaction{tx}, "validador-1")
+	if err != nil {
+		log.Fatal("erro ao adicionar bloco:", err)
 	}
+	fmt.Println("\nBloco com transação assinada adicionado com sucesso!")
 
-	if err := bc.IsValid(); err != nil {
-		fmt.Println("\nChain inválida:", err)
-	} else {
-		fmt.Println("\nChain válida!")
+	// simula uma transação forjada: Bob tentando assinar como se fosse a Alice
+	fakeTx := chain.Transaction{
+		From:   aliceWallet.Address(), // finge ser a Alice
+		To:     bobWallet.Address(),
+		Amount: 1000,
 	}
-
-	// simula adulteração num bloco do meio da chain
-	fmt.Println("\nAdulterando o bloco 1...")
-	bc.Blocks[1].Transactions[0].Amount = 999999
-
-	if err := bc.IsValid(); err != nil {
-		fmt.Println("Chain inválida (como esperado):", err)
-	} else {
-		fmt.Println("Chain válida (isso seria um bug!)")
-	}
+	err = chain.SignTransaction(&fakeTx, bobWallet) // mas assina com a chave do Bob
+	fmt.Printf("\nTentativa de forjar transação: %v\n", err)
 }

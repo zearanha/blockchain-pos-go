@@ -1,6 +1,9 @@
 package chain
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type Blockchain struct {
 	Blocks []*Block
@@ -16,11 +19,22 @@ func (bc *Blockchain) LastBlock() *Block {
 	return bc.Blocks[len(bc.Blocks)-1]
 }
 
-func (bc *Blockchain) AddBlock(transactions []Transaction, validator string) *Block {
+
+func (bc *Blockchain) AddBlock(transactions []Transaction, validator string) (*Block, error) {
+	for i, tx := range transactions {
+		valid, err := VerifyTransaction(&tx)
+		if err != nil {
+			return nil, fmt.Errorf("transação %d inválida: %w", i, err)
+		}
+		if !valid {
+			return nil, fmt.Errorf("transação %d com assinatura inválida", i)
+		}
+	}
+
 	last := bc.LastBlock()
 	newBlock := NewBlock(last.Index+1, transactions, last.Hash, validator)
 	bc.Blocks = append(bc.Blocks, newBlock)
-	return newBlock
+	return newBlock, nil
 }
 
 func (bc *Blockchain) IsValid() error {
