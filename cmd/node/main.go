@@ -5,17 +5,36 @@ import (
 
 	"github.com/zearanha/blockchain-pos-go/internal/chain"
 )
+
 func main() {
-	genesis := chain.NewGenesisBlock()
-	fmt.Printf("Bloco gênese criado:\n  Index: %d\n  Hash: %s\n  PrevHash: %q\n",
-		genesis.Index, genesis.Hash, genesis.PrevHash)
+	bc := chain.NewBlockchain()
+	fmt.Printf("Chain iniciada com bloco gênese (hash: %s)\n\n", bc.LastBlock().Hash)
 
-	tx := chain.Transaction{From: "alice", To: "bob", Amount: 10}
-	block1 := chain.NewBlock(1, []chain.Transaction{tx}, genesis.Hash, "validador-teste")
+	bc.AddBlock([]chain.Transaction{
+		{From: "alice", To: "bob", Amount: 10},
+	}, "validador-1")
 
-	fmt.Printf("\nBloco 1 criado:\n  Index: %d\n  Hash: %s\n  PrevHash: %s\n  Válido: %v\n",
-		block1.Index, block1.Hash, block1.PrevHash, block1.IsHashValid())
+	bc.AddBlock([]chain.Transaction{
+		{From: "bob", To: "carol", Amount: 5},
+	}, "validador-2")
 
-	block1.Transactions[0].Amount = 999
-	fmt.Printf("\nApós adulterar a transação:\n  Hash ainda bate? %v\n", block1.IsHashValid())
+	for _, b := range bc.Blocks {
+		fmt.Printf("Bloco %d | Hash: %s | PrevHash: %s\n", b.Index, b.Hash, b.PrevHash)
+	}
+
+	if err := bc.IsValid(); err != nil {
+		fmt.Println("\nChain inválida:", err)
+	} else {
+		fmt.Println("\nChain válida!")
+	}
+
+	// simula adulteração num bloco do meio da chain
+	fmt.Println("\nAdulterando o bloco 1...")
+	bc.Blocks[1].Transactions[0].Amount = 999999
+
+	if err := bc.IsValid(); err != nil {
+		fmt.Println("Chain inválida (como esperado):", err)
+	} else {
+		fmt.Println("Chain válida (isso seria um bug!)")
+	}
 }

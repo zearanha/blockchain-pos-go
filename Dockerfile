@@ -1,4 +1,4 @@
-FROM golang:tip-alpine3.23
+FROM golang:tip-alpine3.23 AS builder
 WORKDIR /app
 
 COPY go.mod ./
