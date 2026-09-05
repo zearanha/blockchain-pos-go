@@ -7,11 +7,13 @@ import (
 
 type Blockchain struct {
 	Blocks []*Block
+	Validators *ValidatorSet
 }
 
 func NewBlockchain() *Blockchain {
 	return &Blockchain {
 		Blocks: []*Block{NewGenesisBlock()},
+		Validators: NewValidatorSet(),
 	}
 }
 
@@ -20,7 +22,7 @@ func (bc *Blockchain) LastBlock() *Block {
 }
 
 
-func (bc *Blockchain) AddBlock(transactions []Transaction, validator string) (*Block, error) {
+func (bc *Blockchain) AddBlock(transactions []Transaction) (*Block, error) {
 	for i, tx := range transactions {
 		valid, err := VerifyTransaction(&tx)
 		if err != nil {
@@ -32,6 +34,12 @@ func (bc *Blockchain) AddBlock(transactions []Transaction, validator string) (*B
 	}
 
 	last := bc.LastBlock()
+
+	validator, err := bc.Validators.SelectValidator(last.Hash)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao selecionar validador: %w", err)
+	}
+
 	newBlock := NewBlock(last.Index+1, transactions, last.Hash, validator)
 	bc.Blocks = append(bc.Blocks, newBlock)
 	return newBlock, nil
