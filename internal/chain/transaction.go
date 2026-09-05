@@ -1,17 +1,17 @@
 package chain
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/zearanha/blockchain-pos-go/internal/wallet"
-	"encoding/json"
 )
 
 type Transaction struct {
 	From      string
 	To        string
 	Amount    float64
-	Signature []byte `json:"-"`
+	Signature []byte `json:"signature"`
 }
 
 func (t *Transaction) dataToSign() []byte {
