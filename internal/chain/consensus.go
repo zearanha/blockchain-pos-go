@@ -49,6 +49,29 @@ func (vs *ValidatorSet) TotalStake() float64 {
 	return total
 }
 
+func (vs *ValidatorSet) StakeOf(address string) (float64, bool) {
+	vs.mu.Lock()
+	defer vs.mu.Unlock()
+
+	v, exists := vs.validators[address]
+	if !exists {
+		return 0, false
+	}
+	return v.Stake, true
+}
+
+func (vs *ValidatorSet) Slash(address string) {
+	vs.mu.Lock()
+	defer vs.mu.Unlock()
+
+	if v, exists := vs.validators[address]; exists {
+		v.Stake = 0
+		return
+	}
+
+	vs.validators[address] = &Validator{Address: address, Stake: 0}
+}
+
 // SelectValidator escolhe um validador de forma determinística, ponderada pelo stake.
 // A seed (normalmente o hash do bloco anterior) garante que todos os nós,
 // com o mesmo ValidatorSet, cheguem ao mesmo resultado.
@@ -74,7 +97,6 @@ func (vs *ValidatorSet) SelectValidator(seed string) (string, error) {
 	}
 	sort.Strings(addresses)
 
-
 	point := seededRandom(seed, totalStake)
 
 	cumulative := 0.0
@@ -88,12 +110,10 @@ func (vs *ValidatorSet) SelectValidator(seed string) (string, error) {
 	return addresses[len(addresses)-1], nil
 }
 
-
 func seededRandom(seed string, max float64) float64 {
 	hash := sha256.Sum256([]byte(seed))
 	n := binary.BigEndian.Uint64(hash[:8])
 
-	
 	fraction := float64(n) / float64(^uint64(0))
 	return fraction * max
 }

@@ -4,7 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"time"
+
+	"github.com/zearanha/blockchain-pos-go/internal/wallet"
 )
 
 type Block struct {
@@ -14,6 +17,7 @@ type Block struct {
 	PrevHash     string
 	Hash         string
 	Validator    string
+	Signature    []byte `json:"signature"`
 }
 
 func NewBlock(index int, transactions []Transaction, prevHash string, validator string) *Block {
@@ -50,6 +54,46 @@ func (b *Block) CalculateHash() string {
 func (b *Block) IsHashValid() bool {
 	return b.Hash == b.CalculateHash()
 }
+
+func (b *Block) dataToSign() []byte {
+	return []byte(b.Hash)
+}
+
+func SignBlock(block *Block, w *wallet.Wallet) error {
+	if w == nil {
+		return errors.New("carteira do validador é obrigatória")
+	}
+	if block.Validator != w.Address() {
+		return errors.New("a carteira não corresponde ao validador do bloco")
+	}
+
+	block.Hash = block.CalculateHash()
+
+	signature, err := w.Sign(block.dataToSign())
+	if err != nil {
+		return err
+	}
+
+	block.Signature = signature
+	return nil
+}
+
+func VerifyBlock(block *Block) (bool, error) {
+	if !block.IsHashValid() {
+		return false, errors.New("hash do bloco inválido")
+	}
+	if len(block.Signature) == 0 {
+		return false, errors.New("bloco sem assinatura")
+	}
+
+	pub, err := wallet.AddressToPublicKey(block.Validator)
+	if err != nil {
+		return false, err
+	}
+
+	return wallet.VerifySignature(pub, block.dataToSign(), block.Signature), nil
+}
+
 func NewGenesisBlock() *Block {
 	block := &Block{
 		Index:        0,

@@ -9,3 +9,7 @@ type TransactionMessage struct {
 type BlockMessage struct {
 	Block chain.Block `json:"block"`
 }
+
+type SlashingEvidenceMessage struct {
+	Evidence chain.SlashingEvidence `json:"evidence"`
+}

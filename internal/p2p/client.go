@@ -20,6 +20,11 @@ func BroadcastBlock(peers []string, block chain.Block) {
 	broadcast(peers, "/block", msg)
 }
 
+func BroadcastSlashingEvidence(peers []string, evidence chain.SlashingEvidence) {
+	msg := SlashingEvidenceMessage{Evidence: evidence}
+	broadcast(peers, "/slashing", msg)
+}
+
 func broadcast(peers []string, path string, payload interface{}) {
 	data, err := json.Marshal(payload)
 	if err != nil {

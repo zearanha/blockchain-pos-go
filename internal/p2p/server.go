@@ -11,6 +11,7 @@ import (
 type ChainHandler interface {
 	ReceiveTransaction(tx chain.Transaction) error
 	ReceiveBlock(block chain.Block) error
+	ReceiveSlashingEvidence(evidence chain.SlashingEvidence) error
 	GetChain() []*chain.Block
 }
 
@@ -27,6 +28,7 @@ func (s *Server) Start(address string) {
 
 	mux.HandleFunc("/transaction", s.handleTransaction)
 	mux.HandleFunc("/block", s.handleBlock)
+	mux.HandleFunc("/slashing", s.handleSlashingEvidence)
 	mux.HandleFunc("/chain", s.handleGetChain)
 
 	log.Printf("Nó P2P escutando em %s", address)
@@ -60,6 +62,21 @@ func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.handler.ReceiveBlock(msg.Block); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleSlashingEvidence(w http.ResponseWriter, r *http.Request) {
+	var msg SlashingEvidenceMessage
+	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
+		http.Error(w, "corpo inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.handler.ReceiveSlashingEvidence(msg.Evidence); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
